@@ -8,6 +8,7 @@ import {
   Video,
 } from "lucide-react";
 import { signOut } from "@/app/account/actions";
+import { BUSINESS_TIMEZONE_LABEL, formatLessonTime } from "@/lib/datetime";
 import { Button, LinkButton } from "@/components/ui/Button";
 import { MessageThread, type ThreadMessage } from "./MessageThread";
 import type {
@@ -154,7 +155,6 @@ export function Dashboard({
         ) : (
           <ul className="space-y-4">
             {upcoming.map((l) => {
-              const start = new Date(l.starts_at);
               return (
                 <li
                   key={l.id}
@@ -166,13 +166,14 @@ export function Dashboard({
                     </strong>
                     <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-400">
                       <span>
-                        {start.toLocaleString("en-GB", {
+                        {formatLessonTime(l.starts_at, {
                           weekday: "long",
                           day: "numeric",
                           month: "long",
                           hour: "2-digit",
                           minute: "2-digit",
-                        })}
+                        })}{" "}
+                        {BUSINESS_TIMEZONE_LABEL}
                       </span>
                       <span>· {l.duration_minutes} min</span>
                       <span className="inline-flex items-center gap-1.5">
@@ -346,7 +347,7 @@ export function Dashboard({
                     dateTime={l.starts_at}
                     className="font-hud text-[0.68rem] uppercase tracking-[0.16em] text-slate-500"
                   >
-                    {new Date(l.starts_at).toLocaleDateString("en-GB", {
+                    {formatLessonTime(l.starts_at, {
                       day: "numeric",
                       month: "short",
                     })}

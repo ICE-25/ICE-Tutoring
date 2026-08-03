@@ -3,6 +3,7 @@
 import type { GradeBand } from "@/lib/database.types";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import { getClientIpHash, rateLimit } from "@/lib/rate-limit";
 import { isTurnstileLive, verifyTurnstile } from "@/lib/turnstile";
 import type { EnrollFieldErrors, EnrollState } from "./enroll-state";
@@ -115,11 +116,17 @@ export async function submitEnrollment(
   }
 
   // Attribute the enrollment to the parent if they happen to be signed in.
+  // Identity always comes from the cookie-scoped client, never from the form.
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { error } = await supabase.from("enrollments").insert({
+  // Prefer the service-role client for the write. Once anon INSERT on
+  // enrollments is revoked, this is the only path in, so Turnstile and the
+  // rate limit can no longer be skipped by calling PostgREST directly.
+  const writer = createServiceClient() ?? supabase;
+
+  const { error } = await writer.from("enrollments").insert({
     parent_id: user?.id ?? null,
     parent_name: parentName,
     learner_name: learnerName,

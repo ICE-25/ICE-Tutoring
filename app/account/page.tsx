@@ -3,6 +3,7 @@ import { CalendarDays, LineChart, MessagesSquare } from "lucide-react";
 import { PageHero } from "@/components/layout/PageHero";
 import { AccountForm } from "@/components/forms/AccountForm";
 import { Dashboard } from "@/components/account/Dashboard";
+import { LinkButton } from "@/components/ui/Button";
 import { FeatureCard } from "@/components/ui/FeatureCard";
 import { Reveal } from "@/components/ui/Reveal";
 import { SectionHeading } from "@/components/ui/SectionHeading";
@@ -55,7 +56,7 @@ export default async function AccountPage() {
       { data: assessments },
       { data: conversation },
     ] = await Promise.all([
-      supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle(),
+      supabase.from("profiles").select("full_name, role").eq("id", user.id).maybeSingle(),
       supabase
         .from("enrollments")
         .select("id, learner_name, grade_band, subject, status, created_at")
@@ -113,6 +114,24 @@ export default async function AccountPage() {
           }
           lead="Track lessons, message your tutor, and manage enrollment in one place."
         />
+        {/* Admins keep their own parent view — this only signposts the console
+            rather than redirecting, since an admin may also be a parent. */}
+        {profile?.role === "admin" && (
+          <section className="pb-8">
+            <div className="container-ice">
+              <div className="flex flex-wrap items-center justify-between gap-4 rounded-hud border border-gold/30 bg-gold/[0.07] p-6">
+                <p className="text-sm text-slate-200">
+                  You&rsquo;re signed in as an <strong className="text-gold">admin</strong>.
+                  This page shows your own parent view.
+                </p>
+                <LinkButton href="/admin" variant="ghost">
+                  Open admin console
+                </LinkButton>
+              </div>
+            </div>
+          </section>
+        )}
+
         <section className="pb-24">
           <Dashboard
             name={profile?.full_name || user.email || ""}

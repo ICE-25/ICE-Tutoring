@@ -7,6 +7,7 @@ import type {
   LessonFormat,
   LessonStatus,
 } from "@/lib/database.types";
+import { BUSINESS_TIMEZONE, zonedLocalToUtc } from "@/lib/datetime";
 import { requireAdmin } from "@/lib/supabase/admin";
 import type { AdminState } from "./admin-state";
 
@@ -118,9 +119,13 @@ export async function createLesson(
   if (subject.length < 2) return fail("Enter a subject.");
   if (!startsAtLocal) return fail("Choose a date and time.");
 
-  // datetime-local has no timezone; interpret in the server's zone.
-  const startsAt = new Date(startsAtLocal);
-  if (Number.isNaN(startsAt.getTime())) return fail("That date and time is not valid.");
+  // datetime-local carries no zone, so convert using the one the browser
+  // reported. Falls back to Africa/Kampala if the hidden field is missing.
+  const startsAt = zonedLocalToUtc(
+    startsAtLocal,
+    text(fd, "client_timezone") || BUSINESS_TIMEZONE,
+  );
+  if (!startsAt) return fail("That date and time is not valid.");
 
   const duration = num(fd, "duration_minutes") ?? 60;
   if (duration < 15 || duration > 480)

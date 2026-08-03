@@ -1,7 +1,9 @@
 import { createLesson, setLessonStatus } from "../actions";
 import { AdminForm } from "@/components/admin/AdminForm";
+import { TimezoneField } from "@/components/admin/TimezoneField";
 import { adminInput, adminLabel } from "@/components/admin/styles";
 import type { LessonStatus } from "@/lib/database.types";
+import { BUSINESS_TIMEZONE_LABEL, formatLessonTime } from "@/lib/datetime";
 import { requireAdmin } from "@/lib/supabase/admin";
 
 const statuses: LessonStatus[] = ["scheduled", "completed", "cancelled"];
@@ -59,7 +61,7 @@ export default async function AdminLessonsPage() {
         </div>
         <div>
           <label htmlFor="starts_at" className={adminLabel}>
-            Starts at
+            Starts at <span className="text-slate-500">(your local time)</span>
           </label>
           <input
             id="starts_at"
@@ -68,6 +70,7 @@ export default async function AdminLessonsPage() {
             required
             className={adminInput}
           />
+          <TimezoneField />
         </div>
         <div>
           <label htmlFor="duration_minutes" className={adminLabel}>
@@ -130,14 +133,14 @@ export default async function AdminLessonsPage() {
                     {learnerName.get(l.learner_id) ?? "Unknown learner"} · {l.subject}
                   </strong>
                   <p className="mt-1 text-sm text-slate-400">
-                    {new Date(l.starts_at).toLocaleString("en-GB", {
+                    {formatLessonTime(l.starts_at, {
                       weekday: "short",
                       day: "numeric",
                       month: "short",
                       hour: "2-digit",
                       minute: "2-digit",
                     })}{" "}
-                    · {l.duration_minutes} min · {l.format}
+                    {BUSINESS_TIMEZONE_LABEL} · {l.duration_minutes} min · {l.format}
                     {l.tutor_id ? ` · ${tutorName.get(l.tutor_id) ?? "tutor"}` : " · unassigned"}
                   </p>
                 </div>
