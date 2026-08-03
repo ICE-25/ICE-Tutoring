@@ -1,0 +1,247 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================
+   ICE TUTORING — futuristic HUD design system
+   Palette descends from the original brand tokens
+   (navy #0B2559 · blue #1560D6 · cyan #34C7F4) into the deep,
+   glowing register of the mascot art and cover banner.
+   ============================================================ */
+
+@layer base {
+  :root {
+    --ice-void: #03070f;
+    --ice-cyan: 52 199 244;
+    --ice-blue: 21 96 214;
+    --ice-glow: 111 227 255;
+  }
+
+  * {
+    @apply border-white/5;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-void font-body text-slate-300 antialiased;
+    font-size: 1.0625rem; /* slightly larger body copy than the original site */
+    line-height: 1.7;
+    overflow-x: hidden;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-display font-bold text-white;
+    text-wrap: balance;
+  }
+
+  ::selection {
+    background: rgb(var(--ice-cyan) / 0.3);
+    color: #fff;
+  }
+
+  :focus-visible {
+    outline: 2px solid rgb(var(--ice-glow));
+    outline-offset: 3px;
+    border-radius: 6px;
+  }
+
+  /* Custom scrollbar — subtle HUD detail */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #050c1b;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, rgb(var(--ice-blue) / 0.7), rgb(var(--ice-cyan) / 0.6));
+    border-radius: 999px;
+    border: 2px solid #050c1b;
+  }
+}
+
+@layer components {
+  .container-ice {
+    @apply mx-auto w-full max-w-[1220px] px-5 sm:px-7 lg:px-8;
+  }
+
+  /* ---------- Glass surfaces ---------- */
+  .glass {
+    background:
+      linear-gradient(160deg, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0.02) 55%),
+      rgba(6, 14, 30, 0.62);
+    backdrop-filter: blur(18px) saturate(140%);
+    -webkit-backdrop-filter: blur(18px) saturate(140%);
+    border: 1px solid rgba(255, 255, 255, 0.09);
+  }
+
+  .glass-strong {
+    background:
+      linear-gradient(160deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.03) 55%),
+      rgba(5, 12, 27, 0.88);
+    backdrop-filter: blur(24px) saturate(150%);
+    -webkit-backdrop-filter: blur(24px) saturate(150%);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+  }
+
+  /* Animated gradient hairline that lights up on hover/focus */
+  .edge-glow {
+    position: relative;
+  }
+  .edge-glow::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(
+      130deg,
+      rgba(52, 199, 244, 0.75),
+      rgba(21, 96, 214, 0.05) 42%,
+      rgba(52, 199, 244, 0.55) 78%,
+      rgba(21, 96, 214, 0.05)
+    );
+    background-size: 220% 220%;
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    pointer-events: none;
+  }
+  .edge-glow:hover::before,
+  .edge-glow:focus-within::before {
+    opacity: 1;
+    animation: shimmer 4s linear infinite;
+  }
+
+  /* ---------- Text treatments ---------- */
+  .text-grad {
+    @apply bg-grad-text bg-clip-text text-transparent;
+  }
+
+  .hud-label {
+    @apply font-hud text-[0.68rem] font-medium uppercase tracking-[0.28em] text-cyan-brand;
+  }
+
+  /* ---------- Buttons ---------- */
+  .btn {
+    @apply relative inline-flex select-none items-center justify-center gap-2.5 rounded-full
+           font-display text-[0.95rem] font-semibold tracking-tight
+           transition-all duration-300 ease-out;
+    padding: 0.9rem 1.75rem;
+  }
+
+  .btn-lg {
+    @apply text-[1.02rem];
+    padding: 1.05rem 2.15rem;
+  }
+
+  .btn-primary {
+    @apply text-white;
+    background: linear-gradient(100deg, #1560d6 0%, #2e86ff 48%, #34c7f4 100%);
+    box-shadow:
+      0 0 0 1px rgba(111, 227, 255, 0.35),
+      0 14px 40px -16px rgba(52, 199, 244, 0.75),
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.25);
+  }
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow:
+      0 0 0 1px rgba(111, 227, 255, 0.6),
+      0 22px 60px -18px rgba(52, 199, 244, 0.95),
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.35);
+  }
+
+  .btn-ghost {
+    @apply text-white;
+    background: rgba(255, 255, 255, 0.04);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+  }
+  .btn-ghost:hover {
+    transform: translateY(-2px);
+    border-color: rgba(111, 227, 255, 0.6);
+    background: rgba(52, 199, 244, 0.1);
+    box-shadow: 0 14px 40px -20px rgba(52, 199, 244, 0.8);
+  }
+
+  .btn-whatsapp {
+    @apply text-white;
+    background: linear-gradient(100deg, #1fae55 0%, #24c463 100%);
+    box-shadow:
+      0 0 0 1px rgba(52, 245, 140, 0.3),
+      0 14px 40px -18px rgba(31, 174, 85, 0.85),
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.22);
+  }
+  .btn-whatsapp:hover {
+    transform: translateY(-2px);
+    box-shadow:
+      0 0 0 1px rgba(52, 245, 140, 0.55),
+      0 22px 58px -18px rgba(31, 174, 85, 1),
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.32);
+  }
+
+  .btn-light {
+    @apply text-navy-deep;
+    background: #ffffff;
+    box-shadow: 0 14px 40px -18px rgba(255, 255, 255, 0.6);
+  }
+  .btn-light:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 22px 56px -18px rgba(255, 255, 255, 0.8);
+  }
+
+  /* ---------- Backdrops ---------- */
+  .grid-floor {
+    background-image:
+      linear-gradient(rgba(52, 199, 244, 0.055) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(52, 199, 244, 0.055) 1px, transparent 1px);
+    background-size: 64px 64px;
+  }
+
+  .aura {
+    @apply pointer-events-none absolute rounded-full;
+    filter: blur(90px);
+  }
+}
+
+@layer utilities {
+  .mask-fade-b {
+    -webkit-mask-image: linear-gradient(to bottom, #000 55%, transparent 100%);
+    mask-image: linear-gradient(to bottom, #000 55%, transparent 100%);
+  }
+  .mask-fade-radial {
+    -webkit-mask-image: radial-gradient(ellipse 70% 70% at 50% 40%, #000 40%, transparent 100%);
+    mask-image: radial-gradient(ellipse 70% 70% at 50% 40%, #000 40%, transparent 100%);
+  }
+  .perspective-1000 {
+    perspective: 1000px;
+  }
+  .preserve-3d {
+    transform-style: preserve-3d;
+  }
+}
+
+/* ============================================================
+   Reduced motion — every decorative animation stands down.
+   p5 sketches check this in JS and render a single static frame.
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
