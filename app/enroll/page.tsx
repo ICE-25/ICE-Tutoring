@@ -6,6 +6,7 @@ import { FeatureCard } from "@/components/ui/FeatureCard";
 import { Reveal } from "@/components/ui/Reveal";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { waLinks } from "@/lib/site";
+import { TURNSTILE_SITE_KEY } from "@/lib/turnstile";
 
 export const metadata: Metadata = {
   title: "Enroll",
@@ -29,7 +30,7 @@ export default function EnrollPage() {
       <section className="pb-24">
         <div className="container-ice">
           <Reveal y={40}>
-            <EnrollForm />
+            <EnrollForm turnstileSiteKey={TURNSTILE_SITE_KEY} />
           </Reveal>
         </div>
       </section>

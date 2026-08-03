@@ -2,15 +2,20 @@ import type { Metadata } from "next";
 import { CalendarDays, LineChart, MessagesSquare } from "lucide-react";
 import { PageHero } from "@/components/layout/PageHero";
 import { AccountForm } from "@/components/forms/AccountForm";
+import { Dashboard } from "@/components/account/Dashboard";
 import { FeatureCard } from "@/components/ui/FeatureCard";
 import { Reveal } from "@/components/ui/Reveal";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { HexFieldBackdrop } from "@/components/visuals/Backdrops";
+import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
   title: "Account",
   description: "Track lessons, message your tutor, and manage enrollment in one place.",
 };
+
+// Session-dependent, so never statically cached.
+export const dynamic = "force-dynamic";
 
 const perks = [
   {
@@ -30,7 +35,100 @@ const perks = [
   },
 ];
 
-export default function AccountPage() {
+export default async function AccountPage() {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = (await supabase?.auth.getUser()) ?? { data: { user: null } };
+
+  // ---------- Signed in ----------
+  if (supabase && user) {
+    // RLS scopes every one of these to the caller, so no explicit filtering
+    // is needed on lessons/assessments — they reach the parent through
+    // learners.parent_id via the owns_learner() policy.
+    const [
+      { data: profile },
+      { data: enrollments },
+      { data: learners },
+      { data: lessons },
+      { data: assessments },
+      { data: conversation },
+    ] = await Promise.all([
+      supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle(),
+      supabase
+        .from("enrollments")
+        .select("id, learner_name, grade_band, subject, status, created_at")
+        .eq("parent_id", user.id)
+        .order("created_at", { ascending: false }),
+      supabase.from("learners").select("id, full_name"),
+      supabase
+        .from("lessons")
+        .select(
+          "id, learner_id, subject, starts_at, duration_minutes, format, location, meeting_url, status",
+        )
+        .order("starts_at", { ascending: true }),
+      supabase
+        .from("assessments")
+        .select(
+          "id, learner_id, subject, title, term, score, max_score, grade, assessed_on, comment",
+        )
+        .order("assessed_on", { ascending: false }),
+      supabase
+        .from("conversations")
+        .select("id")
+        .eq("parent_id", user.id)
+        .order("last_message_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+    ]);
+
+    const { data: rawMessages } = conversation
+      ? await supabase
+          .from("messages")
+          .select("id, body, created_at, sender_id")
+          .eq("conversation_id", conversation.id)
+          .order("created_at", { ascending: true })
+      : { data: [] };
+
+    const messages = (rawMessages ?? []).map((m) => ({
+      id: m.id,
+      body: m.body,
+      created_at: m.created_at,
+      mine: m.sender_id === user.id,
+    }));
+
+    const learnerNames = new Map(
+      (learners ?? []).map((l) => [l.id, l.full_name] as const),
+    );
+
+    return (
+      <>
+        <PageHero
+          tag="Your account"
+          title={
+            <>
+              Your ICE <span className="text-grad">dashboard</span>
+            </>
+          }
+          lead="Track lessons, message your tutor, and manage enrollment in one place."
+        />
+        <section className="pb-24">
+          <Dashboard
+            name={profile?.full_name || user.email || ""}
+            email={user.email ?? ""}
+            enrollments={enrollments ?? []}
+            learnerNames={learnerNames}
+            lessons={lessons ?? []}
+            assessments={assessments ?? []}
+            messages={messages}
+          />
+        </section>
+      </>
+    );
+  }
+
+  // ---------- Signed out ----------
   return (
     <>
       <PageHero

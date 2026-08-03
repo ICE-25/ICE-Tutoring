@@ -45,10 +45,24 @@ export function LinkButton({
 
 export function Button({
   type = "button",
+  disabled,
+  onClick,
   ...props
-}: ButtonProps & { type?: "button" | "submit" }) {
+}: ButtonProps & {
+  type?: "button" | "submit";
+  disabled?: boolean;
+  onClick?: () => void;
+}) {
   return (
-    <button type={type} className={classes(props)}>
+    <button
+      type={type}
+      disabled={disabled}
+      onClick={onClick}
+      className={cn(
+        classes(props),
+        disabled && "pointer-events-none opacity-60 saturate-50",
+      )}
+    >
       {props.children}
     </button>
   );

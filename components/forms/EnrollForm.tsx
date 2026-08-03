@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useActionState, useState } from "react";
+import { CheckCircle2, Loader2, TriangleAlert } from "lucide-react";
+import { submitEnrollment } from "@/app/enroll/actions";
+import { initialEnrollState } from "@/app/enroll/enroll-state";
 import { Button } from "@/components/ui/Button";
 import { SelectField, TextField } from "./Field";
-
-const DEMO_NOTE = "This is a demo form — connect it to your backend to go live.";
-const DEFAULT_NOTE = "We'll confirm your enrollment on WhatsApp within one business day.";
+import { TurnstileWidget } from "./TurnstileWidget";
+import { cn } from "@/lib/utils";
 
 const grades = [
   "Primary (P.1 – P.7)",
@@ -25,15 +27,48 @@ const subjects = [
   "Robotics",
 ] as const;
 
-export function EnrollForm() {
-  const [note, setNote] = useState(DEFAULT_NOTE);
+const emptyForm = {
+  parentName: "",
+  learnerName: "",
+  grade: "",
+  subject: "",
+  phone: "",
+};
+
+export function EnrollForm({ turnstileSiteKey }: { turnstileSiteKey: string }) {
+  const [state, formAction, isPending] = useActionState(
+    submitEnrollment,
+    initialEnrollState,
+  );
+
+  // Controlled so a failed submission never wipes what the parent typed.
+  const [values, setValues] = useState(emptyForm);
+  const set = (key: keyof typeof emptyForm) => (v: string) =>
+    setValues((prev) => ({ ...prev, [key]: v }));
+
+  const succeeded = state.status === "success";
+
+  if (succeeded) {
+    return (
+      <div className="edge-glow glass-strong relative mx-auto max-w-lg rounded-hud-lg p-10 text-center shadow-card">
+        <span aria-hidden className="aura -top-16 left-1/2 h-40 w-64 -translate-x-1/2 bg-whatsapp/30" />
+        <div className="relative">
+          <CheckCircle2
+            className="mx-auto mb-5 h-14 w-14 text-whatsapp-bright drop-shadow-[0_0_18px_rgba(52,245,140,0.6)]"
+            aria-hidden
+          />
+          <h2 className="font-display text-2xl font-bold text-white">Learner registered</h2>
+          <p aria-live="polite" className="mt-4 text-slate-300">
+            {state.message}
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        setNote(DEMO_NOTE);
-      }}
+      action={formAction}
       className="edge-glow glass-strong relative mx-auto max-w-lg rounded-hud-lg p-8 shadow-card sm:p-10"
     >
       <span aria-hidden className="aura -top-16 left-1/2 h-40 w-64 -translate-x-1/2 bg-cyan-brand/20" />
@@ -52,19 +87,36 @@ export function EnrollForm() {
             placeholder="e.g. Grace Namuli"
             autoComplete="name"
             required
+            value={values.parentName}
+            onChange={set("parentName")}
+            error={state.fieldErrors.parentName}
           />
           <TextField
             id="learner-name"
             label="Learner's name"
             placeholder="e.g. David Namuli"
             required
+            value={values.learnerName}
+            onChange={set("learnerName")}
+            error={state.fieldErrors.learnerName}
           />
-          <SelectField id="grade" label="Grade level" placeholder="Select grade" options={grades} required />
+          <SelectField
+            id="grade"
+            label="Grade level"
+            placeholder="Select grade"
+            options={grades}
+            required
+            value={values.grade}
+            onChange={set("grade")}
+            error={state.fieldErrors.grade}
+          />
           <SelectField
             id="subject"
             label="Subject of interest"
             placeholder="Select subject"
             options={subjects}
+            value={values.subject}
+            onChange={set("subject")}
           />
           <TextField
             id="phone"
@@ -73,17 +125,38 @@ export function EnrollForm() {
             placeholder="e.g. 07XX XXX XXX"
             autoComplete="tel"
             required
+            value={values.phone}
+            onChange={set("phone")}
+            error={state.fieldErrors.phone}
           />
         </div>
 
+        <TurnstileWidget siteKey={turnstileSiteKey} />
+
         <div className="mt-8">
-          <Button type="submit" variant="primary" size="lg" block>
-            Register learner
+          <Button type="submit" variant="primary" size="lg" block disabled={isPending}>
+            {isPending ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                Registering…
+              </>
+            ) : (
+              "Register learner"
+            )}
           </Button>
         </div>
 
-        <p aria-live="polite" className="mt-5 text-center text-sm text-slate-400">
-          {note}
+        <p
+          aria-live="polite"
+          className={cn(
+            "mt-5 flex items-center justify-center gap-2 text-center text-sm",
+            state.status === "error" ? "text-rose-300" : "text-slate-400",
+          )}
+        >
+          {state.status === "error" && (
+            <TriangleAlert className="h-4 w-4 shrink-0" aria-hidden />
+          )}
+          {state.message}
         </p>
       </div>
     </form>

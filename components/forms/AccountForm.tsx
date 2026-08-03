@@ -1,22 +1,56 @@
 "use client";
 
-import { useState } from "react";
+import { useActionState, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
+import { Loader2, MailCheck, TriangleAlert } from "lucide-react";
+import { signIn, signUp } from "@/app/account/actions";
+import { initialLoginState, initialRegisterState } from "@/app/account/auth-state";
 import { Button } from "@/components/ui/Button";
 import { TextField } from "./Field";
 import { cn } from "@/lib/utils";
 
-const DEMO_NOTE = "This is a demo form — connect it to your backend to go live.";
-const LOGIN_NOTE = "Forgot your password? Message us on WhatsApp to reset it.";
-const REGISTER_NOTE = "By registering you agree to be contacted about your lessons.";
-
 type Tab = "login" | "register";
+
+function StatusNote({ status, message }: { status: string; message: string }) {
+  const isError = status === "error";
+  const isCheckEmail = status === "check-email";
+
+  return (
+    <p
+      aria-live="polite"
+      className={cn(
+        "mt-5 flex items-center justify-center gap-2 text-center text-sm",
+        isError && "text-rose-300",
+        isCheckEmail && "text-whatsapp-bright",
+        !isError && !isCheckEmail && "text-slate-400",
+      )}
+    >
+      {isError && <TriangleAlert className="h-4 w-4 shrink-0" aria-hidden />}
+      {isCheckEmail && <MailCheck className="h-4 w-4 shrink-0" aria-hidden />}
+      {message}
+    </p>
+  );
+}
 
 export function AccountForm() {
   const [tab, setTab] = useState<Tab>("login");
-  const [loginNote, setLoginNote] = useState(LOGIN_NOTE);
-  const [registerNote, setRegisterNote] = useState(REGISTER_NOTE);
   const reduce = useReducedMotion();
+
+  // Controlled: React resets uncontrolled forms once a server action settles,
+  // which would wipe everything the user typed on a failed sign-in.
+  const [login, setLogin] = useState({ email: "", password: "" });
+  const [register, setRegister] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    password: "",
+  });
+
+  const [loginState, loginAction, loginPending] = useActionState(signIn, initialLoginState);
+  const [registerState, registerAction, registerPending] = useActionState(
+    signUp,
+    initialRegisterState,
+  );
 
   const tabs: { id: Tab; label: string }[] = [
     { id: "login", label: "Log in" },
@@ -28,8 +62,11 @@ export function AccountForm() {
       <span aria-hidden className="aura -top-16 left-1/2 h-40 w-64 -translate-x-1/2 bg-cyan-brand/20" />
 
       <div className="relative">
-        {/* Tab switcher */}
-        <div role="tablist" aria-label="Account" className="mb-8 flex gap-1.5 rounded-full border border-white/10 bg-white/[0.03] p-1.5">
+        <div
+          role="tablist"
+          aria-label="Account"
+          className="mb-8 flex gap-1.5 rounded-full border border-white/10 bg-white/[0.03] p-1.5"
+        >
           {tabs.map((t) => (
             <button
               key={t.id}
@@ -55,16 +92,13 @@ export function AccountForm() {
           ))}
         </div>
 
-        {/* Log in */}
+        {/* ---------------- Log in ---------------- */}
         <form
           role="tabpanel"
           id="panel-login"
           aria-labelledby="tab-login"
           hidden={tab !== "login"}
-          onSubmit={(e) => {
-            e.preventDefault();
-            setLoginNote(DEMO_NOTE);
-          }}
+          action={loginAction}
         >
           <div className="space-y-5">
             <TextField
@@ -73,6 +107,8 @@ export function AccountForm() {
               placeholder="you@example.com"
               autoComplete="username"
               required
+              value={login.email}
+              onChange={(v) => setLogin((p) => ({ ...p, email: v }))}
             />
             <TextField
               id="login-password"
@@ -81,31 +117,43 @@ export function AccountForm() {
               placeholder="••••••••"
               autoComplete="current-password"
               required
+              value={login.password}
+              onChange={(v) => setLogin((p) => ({ ...p, password: v }))}
             />
           </div>
           <div className="mt-8">
-            <Button type="submit" variant="primary" size="lg" block>
-              Log in
+            <Button type="submit" variant="primary" size="lg" block disabled={loginPending}>
+              {loginPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                  Signing in…
+                </>
+              ) : (
+                "Log in"
+              )}
             </Button>
           </div>
-          <p aria-live="polite" className="mt-5 text-center text-sm text-slate-400">
-            {loginNote}
-          </p>
+          <StatusNote status={loginState.status} message={loginState.message} />
         </form>
 
-        {/* Register */}
+        {/* ---------------- Register ---------------- */}
         <form
           role="tabpanel"
           id="panel-register"
           aria-labelledby="tab-register"
           hidden={tab !== "register"}
-          onSubmit={(e) => {
-            e.preventDefault();
-            setRegisterNote(DEMO_NOTE);
-          }}
+          action={registerAction}
         >
           <div className="space-y-5">
-            <TextField id="reg-name" label="Full name" placeholder="Your name" autoComplete="name" required />
+            <TextField
+              id="reg-name"
+              label="Full name"
+              placeholder="Your name"
+              autoComplete="name"
+              required
+              value={register.name}
+              onChange={(v) => setRegister((p) => ({ ...p, name: v }))}
+            />
             <TextField
               id="reg-email"
               label="Email"
@@ -113,6 +161,8 @@ export function AccountForm() {
               placeholder="you@example.com"
               autoComplete="email"
               required
+              value={register.email}
+              onChange={(v) => setRegister((p) => ({ ...p, email: v }))}
             />
             <TextField
               id="reg-phone"
@@ -121,6 +171,8 @@ export function AccountForm() {
               placeholder="07XX XXX XXX"
               autoComplete="tel"
               required
+              value={register.phone}
+              onChange={(v) => setRegister((p) => ({ ...p, phone: v }))}
             />
             <TextField
               id="reg-password"
@@ -129,16 +181,23 @@ export function AccountForm() {
               placeholder="••••••••"
               autoComplete="new-password"
               required
+              value={register.password}
+              onChange={(v) => setRegister((p) => ({ ...p, password: v }))}
             />
           </div>
           <div className="mt-8">
-            <Button type="submit" variant="primary" size="lg" block>
-              Create account
+            <Button type="submit" variant="primary" size="lg" block disabled={registerPending}>
+              {registerPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                  Creating account…
+                </>
+              ) : (
+                "Create account"
+              )}
             </Button>
           </div>
-          <p aria-live="polite" className="mt-5 text-center text-sm text-slate-400">
-            {registerNote}
-          </p>
+          <StatusNote status={registerState.status} message={registerState.message} />
         </form>
       </div>
     </div>
