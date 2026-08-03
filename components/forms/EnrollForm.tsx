@@ -1,10 +1,10 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { CheckCircle2, Loader2, TriangleAlert } from "lucide-react";
+import { CheckCircle2, Loader2, TriangleAlert, UserPlus } from "lucide-react";
 import { submitEnrollment } from "@/app/enroll/actions";
 import { initialEnrollState } from "@/app/enroll/enroll-state";
-import { Button } from "@/components/ui/Button";
+import { Button, LinkButton } from "@/components/ui/Button";
 import { SelectField, TextField } from "./Field";
 import { TurnstileWidget } from "./TurnstileWidget";
 import { cn } from "@/lib/utils";
@@ -35,7 +35,30 @@ const emptyForm = {
   phone: "",
 };
 
+/**
+ * Wrapper whose only job is to hold a remount key. Bumping it gives the inner
+ * form a fresh useActionState, which is how "enroll another learner" clears a
+ * completed submission — a family with three children must not have to reload
+ * the page between each one.
+ */
 export function EnrollForm({ turnstileSiteKey }: { turnstileSiteKey: string }) {
+  const [formKey, setFormKey] = useState(0);
+  return (
+    <EnrollFormInner
+      key={formKey}
+      turnstileSiteKey={turnstileSiteKey}
+      onEnrollAnother={() => setFormKey((k) => k + 1)}
+    />
+  );
+}
+
+function EnrollFormInner({
+  turnstileSiteKey,
+  onEnrollAnother,
+}: {
+  turnstileSiteKey: string;
+  onEnrollAnother: () => void;
+}) {
   const [state, formAction, isPending] = useActionState(
     submitEnrollment,
     initialEnrollState,
@@ -61,6 +84,16 @@ export function EnrollForm({ turnstileSiteKey }: { turnstileSiteKey: string }) {
           <p aria-live="polite" className="mt-4 text-slate-300">
             {state.message}
           </p>
+
+          <div className="mt-8 flex flex-wrap justify-center gap-4">
+            <Button variant="primary" onClick={onEnrollAnother}>
+              <UserPlus className="h-4 w-4" aria-hidden />
+              Enroll another learner
+            </Button>
+            <LinkButton href="/account" variant="ghost">
+              View my dashboard
+            </LinkButton>
+          </div>
         </div>
       </div>
     );

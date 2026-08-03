@@ -72,18 +72,23 @@ const statusStyles: Record<EnrollmentStatus, { label: string; className: string 
 function SectionCard({
   icon: Icon,
   title,
+  action,
   children,
 }: {
   icon: typeof CalendarDays;
   title: string;
+  action?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
     <section className="mb-10">
-      <h3 className="mb-5 flex items-center gap-3 font-display text-lg font-semibold text-white">
-        <Icon className="h-5 w-5 text-cyan-brand" aria-hidden />
-        {title}
-      </h3>
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
+        <h3 className="flex items-center gap-3 font-display text-lg font-semibold text-white">
+          <Icon className="h-5 w-5 text-cyan-brand" aria-hidden />
+          {title}
+        </h3>
+        {action}
+      </div>
       {children}
     </section>
   );
@@ -259,7 +264,17 @@ export function Dashboard({
       </SectionCard>
 
       {/* ---------- Enrollments ---------- */}
-      <SectionCard icon={GraduationCap} title="Your enrollments">
+      <SectionCard
+        icon={GraduationCap}
+        title="Your enrollments"
+        action={
+          enrollments.length > 0 ? (
+            <LinkButton href="/enroll" variant="ghost">
+              Enroll another learner
+            </LinkButton>
+          ) : null
+        }
+      >
         {enrollments.length === 0 ? (
           <Empty>
             <p>You haven&rsquo;t enrolled a learner yet.</p>

@@ -5,16 +5,71 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { Menu, X } from "lucide-react";
+import { Menu, ShieldCheck, X } from "lucide-react";
 import { navLinks } from "@/lib/site";
 import { LinkButton } from "@/components/ui/Button";
+import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
+
+type Account = { name: string; email: string; isAdmin: boolean };
+
+/** Initials for the avatar chip, e.g. "David Aine" -> "DA". */
+function initials(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  return (parts[0][0] + (parts[1]?.[0] ?? "")).toUpperCase();
+}
 
 export function Navbar() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [account, setAccount] = useState<Account | null>(null);
   const reduce = useReducedMotion();
+
+  /**
+   * Resolved on the client so the marketing pages stay statically rendered —
+   * reading the session in the root layout would force every page dynamic.
+   */
+  useEffect(() => {
+    const supabase = createClient();
+    if (!supabase) return;
+
+    let active = true;
+
+    const load = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!active) return;
+      if (!user) {
+        setAccount(null);
+        return;
+      }
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name, role")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (!active) return;
+      setAccount({
+        name: profile?.full_name || user.email || "Account",
+        email: user.email ?? "",
+        isAdmin: profile?.role === "admin",
+      });
+    };
+
+    load();
+    const { data: sub } = supabase.auth.onAuthStateChange(() => load());
+
+    return () => {
+      active = false;
+      sub.subscription.unsubscribe();
+    };
+  }, []);
 
   // Close the mobile menu whenever the route changes.
   useEffect(() => setOpen(false), [pathname]);
@@ -93,12 +148,43 @@ export function Navbar() {
         </ul>
 
         <div className="hidden items-center gap-3 lg:flex">
-          <LinkButton href="/account" variant="ghost">
-            Log in
-          </LinkButton>
-          <LinkButton href="/enroll" variant="primary">
-            Join Now
-          </LinkButton>
+          {account ? (
+            <>
+              {account.isAdmin && (
+                <Link
+                  href="/admin"
+                  className="inline-flex items-center gap-2 rounded-full border border-gold/40 bg-gold/10 px-4 py-2 font-display text-sm font-semibold text-gold transition-colors hover:bg-gold/20"
+                >
+                  <ShieldCheck className="h-4 w-4" aria-hidden />
+                  Admin
+                </Link>
+              )}
+              <Link
+                href="/account"
+                title={account.email}
+                className="group flex items-center gap-3 rounded-full border border-white/12 bg-white/[0.04] py-1.5 pl-1.5 pr-4 transition-all hover:border-cyan-brand/50"
+              >
+                <span
+                  aria-hidden
+                  className="grid h-9 w-9 place-items-center rounded-full bg-grad-brand font-display text-xs font-bold text-white shadow-[0_0_16px_-4px_rgba(52,199,244,0.9)]"
+                >
+                  {initials(account.name)}
+                </span>
+                <span className="max-w-[10rem] truncate font-display text-sm font-medium text-white">
+                  {account.name}
+                </span>
+              </Link>
+            </>
+          ) : (
+            <>
+              <LinkButton href="/account" variant="ghost">
+                Log in
+              </LinkButton>
+              <LinkButton href="/enroll" variant="primary">
+                Join Now
+              </LinkButton>
+            </>
+          )}
         </div>
 
         <button
@@ -140,12 +226,43 @@ export function Navbar() {
               ))}
             </ul>
             <div className="container-ice flex flex-col gap-3 pb-6">
-              <LinkButton href="/account" variant="ghost" block>
-                Log in
-              </LinkButton>
-              <LinkButton href="/enroll" variant="primary" block>
-                Join Now
-              </LinkButton>
+              {account ? (
+                <>
+                  <div className="flex items-center gap-3 rounded-2xl border border-white/12 bg-white/[0.04] p-3">
+                    <span
+                      aria-hidden
+                      className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-grad-brand font-display text-xs font-bold text-white"
+                    >
+                      {initials(account.name)}
+                    </span>
+                    <span className="min-w-0">
+                      <strong className="block truncate font-display text-sm text-white">
+                        {account.name}
+                      </strong>
+                      <span className="block truncate text-xs text-slate-400">
+                        {account.email}
+                      </span>
+                    </span>
+                  </div>
+                  {account.isAdmin && (
+                    <LinkButton href="/admin" variant="ghost" block>
+                      Admin console
+                    </LinkButton>
+                  )}
+                  <LinkButton href="/account" variant="primary" block>
+                    My dashboard
+                  </LinkButton>
+                </>
+              ) : (
+                <>
+                  <LinkButton href="/account" variant="ghost" block>
+                    Log in
+                  </LinkButton>
+                  <LinkButton href="/enroll" variant="primary" block>
+                    Join Now
+                  </LinkButton>
+                </>
+              )}
             </div>
           </motion.div>
         )}
