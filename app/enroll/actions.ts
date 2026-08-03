@@ -4,7 +4,7 @@ import type { GradeBand } from "@/lib/database.types";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
 import { getClientIpHash, rateLimit } from "@/lib/rate-limit";
-import { verifyTurnstile } from "@/lib/turnstile";
+import { isTurnstileLive, verifyTurnstile } from "@/lib/turnstile";
 import type { EnrollFieldErrors, EnrollState } from "./enroll-state";
 
 /** Maps the form's display labels onto the grade_band enum. */
@@ -58,6 +58,16 @@ export async function submitEnrollment(
   // PostgREST and bypass both. Closing that fully means revoking anon INSERT
   // on enrollments and having this action write with a service-role key
   // instead — see the note in the project README.
+  // Loud warning if a production deploy is still on Cloudflare's test keys,
+  // which accept every token — i.e. no bot protection at all.
+  if (process.env.NODE_ENV === "production" && !isTurnstileLive) {
+    console.error(
+      "SECURITY: Turnstile is running on test keys in production — the enroll " +
+        "endpoint is effectively unprotected. Set NEXT_PUBLIC_TURNSTILE_SITE_KEY " +
+        "and TURNSTILE_SECRET_KEY.",
+    );
+  }
+
   const { ip, hash } = await getClientIpHash();
 
   const limit = rateLimit(`enroll:${hash}`, 5, 10 * 60 * 1000);
