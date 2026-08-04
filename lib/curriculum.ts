@@ -1,5 +1,6 @@
+import { unstable_cache } from "next/cache";
 import type { ClassLevel, Curriculum, Subject } from "@/lib/database.types";
-import { createClient } from "@/lib/supabase/server";
+import { createPublicClient } from "@/lib/supabase/public";
 
 export type ReferenceData = {
   curricula: Curriculum[];
@@ -12,12 +13,16 @@ const EMPTY: ReferenceData = { curricula: [], classLevels: [], subjects: [] };
 /**
  * Loads the enrollment dropdown data.
  *
- * All three tables are public-read reference data, so this works for
- * logged-out visitors. Returns empty arrays rather than throwing when Supabase
- * is unconfigured, keeping the demo fallback alive.
+ * Cached for an hour and fetched without cookies, so pages using it can be
+ * statically rendered rather than querying the database on every request.
+ * Curricula change perhaps once a year; there is no reason to pay a round
+ * trip to Frankfurt for them on every page view.
+ *
+ * Returns empty arrays rather than throwing when Supabase is unconfigured,
+ * keeping the demo fallback alive.
  */
-export async function getReferenceData(): Promise<ReferenceData> {
-  const supabase = await createClient();
+async function loadReferenceData(): Promise<ReferenceData> {
+  const supabase = createPublicClient();
   if (!supabase) return EMPTY;
 
   const [{ data: curricula }, { data: classLevels }, { data: subjects }] =
@@ -46,6 +51,12 @@ export async function getReferenceData(): Promise<ReferenceData> {
     subjects: subjects ?? [],
   };
 }
+
+export const getReferenceData = unstable_cache(
+  loadReferenceData,
+  ["ice-reference-data"],
+  { revalidate: 3600, tags: ["reference-data"] },
+);
 
 /** "Cambridge (CIE) · Year 10" for display in lists and dashboards. */
 export function describeClass(

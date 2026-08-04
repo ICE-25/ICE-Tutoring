@@ -6,6 +6,7 @@ import { submitTutorApplication } from "@/app/become-a-tutor/actions";
 import { initialTutorApplyState } from "@/app/become-a-tutor/tutor-state";
 import { Button } from "@/components/ui/Button";
 import { TextField } from "./Field";
+import { PhoneField } from "./PhoneField";
 import type { ClassLevel, Curriculum, Subject } from "@/lib/database.types";
 import { cn } from "@/lib/utils";
 
@@ -104,7 +105,7 @@ export function TutorApplicationForm({
     >
       <div className="grid gap-5 sm:grid-cols-2">
         <TextField id="full_name" label="Full name" required />
-        <TextField id="phone" label="Phone number" type="tel" placeholder="07XX XXX XXX" required />
+        <PhoneField id="phone" required />
         <TextField id="headline" label="Headline" placeholder="A-Level Physics specialist" />
         <TextField
           id="years_experience"

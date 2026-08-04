@@ -7,6 +7,7 @@ import { signIn, signUp } from "@/app/account/actions";
 import { initialLoginState, initialRegisterState } from "@/app/account/auth-state";
 import { Button } from "@/components/ui/Button";
 import { TextField } from "./Field";
+import { PhoneField } from "./PhoneField";
 import { cn } from "@/lib/utils";
 
 type Tab = "login" | "register";
@@ -164,16 +165,7 @@ export function AccountForm() {
               value={register.email}
               onChange={(v) => setRegister((p) => ({ ...p, email: v }))}
             />
-            <TextField
-              id="reg-phone"
-              label="Phone number"
-              type="tel"
-              placeholder="07XX XXX XXX"
-              autoComplete="tel"
-              required
-              value={register.phone}
-              onChange={(v) => setRegister((p) => ({ ...p, phone: v }))}
-            />
+            <PhoneField id="reg-phone" required />
             <TextField
               id="reg-password"
               label="Create password"

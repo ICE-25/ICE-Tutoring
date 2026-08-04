@@ -7,6 +7,7 @@ import { initialEnrollState } from "@/app/enroll/enroll-state";
 import { Button, LinkButton } from "@/components/ui/Button";
 import { SelectField, TextField } from "./Field";
 import { CurriculumClassSelect } from "./CurriculumClassSelect";
+import { PhoneField } from "./PhoneField";
 import { TurnstileWidget } from "./TurnstileWidget";
 import type { ClassLevel, Curriculum, Subject } from "@/lib/database.types";
 import { cn } from "@/lib/utils";
@@ -21,7 +22,6 @@ const emptyForm = {
   parentName: "",
   learnerName: "",
   subject: "",
-  phone: "",
 };
 
 /**
@@ -141,17 +141,7 @@ function EnrollFormInner({
             onChange={set("subject")}
             error={state.fieldErrors.subject}
           />
-          <TextField
-            id="phone"
-            label="Phone number"
-            type="tel"
-            placeholder="e.g. 07XX XXX XXX"
-            autoComplete="tel"
-            required
-            value={values.phone}
-            onChange={set("phone")}
-            error={state.fieldErrors.phone}
-          />
+          <PhoneField id="phone" required error={state.fieldErrors.phone} />
         </div>
 
         <TurnstileWidget siteKey={turnstileSiteKey} />

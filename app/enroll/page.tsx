@@ -15,8 +15,9 @@ export const metadata: Metadata = {
     "Fill in the form, or message us on WhatsApp — we'll match a tutor within a day.",
 };
 
-// Reference data comes from the database, so this can't be fully prerendered.
-export const dynamic = "force-dynamic";
+// Reference data is cached and cookie-free, so this page prerenders and
+// revalidates hourly instead of querying the database on every visit.
+export const revalidate = 3600;
 
 export default async function EnrollPage() {
   const { curricula, classLevels, subjects } = await getReferenceData();
