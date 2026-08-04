@@ -1,6 +1,7 @@
 import { GraduationCap, Target, TrendingUp } from "lucide-react";
 import { Hero } from "@/components/home/Hero";
 import { BotCallout } from "@/components/home/BotCallout";
+import { PathChooser } from "@/components/home/PathChooser";
 import { FaqAccordion, type FaqItem } from "@/components/home/FaqAccordion";
 import { LinkButton } from "@/components/ui/Button";
 import { CtaPanel } from "@/components/ui/CtaPanel";
@@ -76,6 +77,7 @@ export default function HomePage() {
   return (
     <>
       <Hero />
+      <PathChooser />
       <FacetDivider />
 
       {/* ---------- Why ICE is different ---------- */}

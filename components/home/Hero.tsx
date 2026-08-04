@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { LinkButton } from "@/components/ui/Button";
 import { Reveal } from "@/components/ui/Reveal";
 import { Stat } from "@/components/ui/Stat";
@@ -62,6 +63,18 @@ export function Hero() {
                 Chat on WhatsApp
               </LinkButton>
             </div>
+          </Reveal>
+
+          <Reveal delay={0.28}>
+            <p className="mt-5 text-sm text-slate-400">
+              Are you a tutor?{" "}
+              <Link
+                href="/become-a-tutor"
+                className="font-semibold text-cyan-glow underline-offset-4 hover:underline"
+              >
+                Apply to teach with ICE
+              </Link>
+            </p>
           </Reveal>
 
           <Reveal delay={0.32}>

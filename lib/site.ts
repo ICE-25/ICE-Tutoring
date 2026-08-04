@@ -39,6 +39,8 @@ export const navLinks = [
   { label: "Subjects", href: "/subjects" },
   { label: "Tutors", href: "/tutors" },
   { label: "Enroll", href: "/enroll" },
+  // The supply side needs a top-level entry point, not just a footer link.
+  { label: "Teach", href: "/become-a-tutor" },
   { label: "ICE Bot", href: "/ice-bot" },
   { label: "Account", href: "/account" },
 ] as const;
