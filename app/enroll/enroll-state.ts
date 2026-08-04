@@ -7,7 +7,13 @@
 
 export type EnrollFieldErrors = Partial<
   Record<
-    "parentName" | "learnerName" | "curriculum" | "classLevel" | "subject" | "phone",
+    | "parentName"
+    | "learnerName"
+    | "curriculum"
+    | "classLevel"
+    | "subject"
+    | "phone"
+    | "email",
     string
   >
 >;

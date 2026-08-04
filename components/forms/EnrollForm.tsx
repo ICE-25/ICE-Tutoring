@@ -22,6 +22,7 @@ const emptyForm = {
   parentName: "",
   learnerName: "",
   subject: "",
+  email: "",
 };
 
 /**
@@ -142,6 +143,16 @@ function EnrollFormInner({
             error={state.fieldErrors.subject}
           />
           <PhoneField id="phone" required error={state.fieldErrors.phone} />
+          <TextField
+            id="email"
+            label="Email address"
+            type="email"
+            placeholder="you@example.com — for your confirmation"
+            autoComplete="email"
+            value={values.email}
+            onChange={set("email")}
+            error={state.fieldErrors.email}
+          />
         </div>
 
         <TurnstileWidget siteKey={turnstileSiteKey} />

@@ -9,6 +9,8 @@ import type {
 import { BUSINESS_TIMEZONE, zonedLocalToUtc } from "@/lib/datetime";
 import { requireAdmin } from "@/lib/supabase/admin";
 import { createServiceClient } from "@/lib/supabase/service";
+import { sendTutorApproved, sendTutorRejected } from "@/lib/email";
+import { siteUrl } from "@/lib/site-url";
 import type { AdminState } from "./admin-state";
 
 function text(fd: FormData, key: string) {
@@ -221,6 +223,30 @@ export async function reviewTutorApplication(fd: FormData): Promise<void> {
       .from("profiles")
       .update({ role: decision === "approved" ? "tutor" : "parent" })
       .eq("id", tutor.profile_id);
+  }
+
+  // Tell the applicant. Sending must never block the decision itself, so
+  // failures are logged inside the email layer rather than thrown.
+  const { data: contact } = await service
+    .from("tutors")
+    .select("full_name, email")
+    .eq("id", tutorId)
+    .maybeSingle();
+
+  if (contact?.email) {
+    if (decision === "approved") {
+      await sendTutorApproved({
+        to: contact.email,
+        tutorName: contact.full_name,
+        siteUrl: siteUrl(),
+      });
+    } else if (decision === "rejected") {
+      await sendTutorRejected({
+        to: contact.email,
+        tutorName: contact.full_name,
+        notes: notes || null,
+      });
+    }
   }
 
   // Close the newest open application on the audit trail.

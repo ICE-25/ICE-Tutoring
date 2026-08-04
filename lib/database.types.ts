@@ -141,6 +141,7 @@ export type Database = {
           class_level_id: string | null;
           subject: string | null;
           phone: string;
+          email: string | null;
           status: EnrollmentStatus;
           created_at: string;
           updated_at: string;
@@ -156,6 +157,7 @@ export type Database = {
           class_level_id: string;
           subject?: string | null;
           phone: string;
+          email?: string | null;
           status?: EnrollmentStatus;
         };
         Update: {

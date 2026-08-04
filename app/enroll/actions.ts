@@ -6,6 +6,9 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { getClientIpHash, rateLimit } from "@/lib/rate-limit";
 import { isTurnstileLive, verifyTurnstile } from "@/lib/turnstile";
+import { sendEnrollmentConfirmation } from "@/lib/email";
+import { describeClass } from "@/lib/curriculum";
+import { siteUrl } from "@/lib/site-url";
 import type { EnrollFieldErrors, EnrollState } from "./enroll-state";
 
 const UUID_RE =
@@ -26,6 +29,7 @@ export async function submitEnrollment(
   const classLevelId = text(formData, "class_level_id");
   const subject = text(formData, "subject");
   const phone = text(formData, "phone");
+  const email = text(formData, "email").toLowerCase();
 
   // ---- validation ----
   const fieldErrors: EnrollFieldErrors = {};
@@ -38,6 +42,11 @@ export async function submitEnrollment(
   // Permissive on format — Ugandan numbers are written many ways.
   const digits = phone.replace(/\D/g, "");
   if (digits.length < 7) fieldErrors.phone = "Please enter a reachable phone number.";
+
+  // Optional — but if given it must be usable, or the confirmation bounces.
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    fieldErrors.email = "That email address doesn't look right.";
+  }
 
   if (Object.keys(fieldErrors).length > 0) {
     return {
@@ -146,6 +155,7 @@ export async function submitEnrollment(
     class_level_id: classLevelId,
     subject: subject || null,
     phone,
+    email: email || user?.email || null,
   });
 
   if (error) {
@@ -156,6 +166,33 @@ export async function submitEnrollment(
         "Sorry — we couldn't save that. Please try again, or message us on WhatsApp and we'll enroll your learner directly.",
       fieldErrors: {},
     };
+  }
+
+  // Confirmation is best-effort: the enrolment is already saved, so a mail
+  // failure must not surface as an error to the parent.
+  const notifyTo = email || user?.email;
+  if (notifyTo) {
+    const { data: labels } = await writer
+      .from("class_levels")
+      .select("label, stage, curricula(name)")
+      .eq("id", classLevelId)
+      .maybeSingle();
+
+    const curriculum = Array.isArray(labels?.curricula)
+      ? labels?.curricula[0]
+      : labels?.curricula;
+
+    await sendEnrollmentConfirmation({
+      to: notifyTo,
+      parentName,
+      learnerName,
+      classDescription: describeClass(
+        (curriculum as { name: string } | undefined) ?? undefined,
+        labels ?? undefined,
+      ),
+      subject: subject || null,
+      siteUrl: siteUrl(),
+    });
   }
 
   return {
