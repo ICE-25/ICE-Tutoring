@@ -115,11 +115,16 @@ export function SelectField({
         <option value="" className="bg-abyss">
           {placeholder}
         </option>
-        {options.map((opt) => {
-          const value = typeof opt === "string" ? opt : opt.value;
-          const label = typeof opt === "string" ? opt : opt.label;
+        {options.map((opt, index) => {
+          // Coerce and index-suffix the key. React requires a string; anything
+          // else stringifies to "[object Object]" and every row collides.
+          // The index also keeps keys unique when two options share a value,
+          // which happens with real data (two learners named John Mukasa).
+          const raw = typeof opt === "string" ? opt : opt?.value;
+          const label = typeof opt === "string" ? opt : opt?.label;
+          const value = typeof raw === "string" ? raw : String(raw ?? "");
           return (
-            <option key={value} value={value} className="bg-abyss">
+            <option key={`${value}-${index}`} value={value} className="bg-abyss">
               {label}
             </option>
           );

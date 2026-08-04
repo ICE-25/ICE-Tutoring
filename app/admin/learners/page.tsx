@@ -10,7 +10,7 @@ export default async function AdminLearnersPage() {
   const { curricula, classLevels } = await getReferenceData();
 
   const [{ data: parents }, { data: learners }] = await Promise.all([
-    supabase.from("profiles").select("id, full_name").order("full_name"),
+    supabase.from("profiles").select("id, full_name, phone").order("full_name"),
     supabase
       .from("learners")
       .select("id, full_name, parent_id, created_at, curricula(name), class_levels(label, stage)")
@@ -45,9 +45,12 @@ export default async function AdminLearnersPage() {
           </label>
           <select id="parent_id" name="parent_id" required className={adminInput} defaultValue="">
             <option value="">Select parent</option>
+            {/* Two parents can share a name, so every option carries a
+                distinguishing detail. The submitted value is always the uuid. */}
             {(parents ?? []).map((p) => (
               <option key={p.id} value={p.id}>
-                {p.full_name || p.id.slice(0, 8)}
+                {(p.full_name || "Unnamed") +
+                  (p.phone ? ` — ${p.phone}` : ` — ${p.id.slice(0, 8)}`)}
               </option>
             ))}
           </select>

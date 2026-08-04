@@ -6,8 +6,11 @@ import { requireAdmin } from "@/lib/supabase/admin";
 export default async function AdminAssessmentsPage() {
   const { supabase } = await requireAdmin();
 
-  const [{ data: learners }, { data: assessments }] = await Promise.all([
-    supabase.from("learners").select("id, full_name").order("full_name"),
+  const [{ data: rawLearners }, { data: assessments }] = await Promise.all([
+    supabase
+      .from("learners")
+      .select("id, full_name, class_levels(label)")
+      .order("full_name"),
     supabase
       .from("assessments")
       .select("id, learner_id, subject, title, term, score, max_score, grade, assessed_on")
@@ -15,7 +18,26 @@ export default async function AdminAssessmentsPage() {
       .limit(50),
   ]);
 
-  const learnerName = new Map((learners ?? []).map((l) => [l.id, l.full_name]));
+  // Learner names are not unique — every option carries a distinguishing
+  // detail, while the submitted value stays the uuid.
+  const learners = (
+    (rawLearners ?? []) as unknown as Array<{
+      id: string;
+      full_name: string;
+      class_levels: { label: string } | { label: string }[] | null;
+    }>
+  ).map((l) => {
+    const level = Array.isArray(l.class_levels) ? l.class_levels[0] : l.class_levels;
+    return {
+      id: l.id,
+      full_name: l.full_name,
+      option_label: level
+        ? `${l.full_name} — ${level.label}`
+        : `${l.full_name} — ${l.id.slice(0, 8)}`,
+    };
+  });
+
+  const learnerName = new Map(learners.map((l) => [l.id, l.full_name]));
 
   return (
     <div className="space-y-8">
@@ -26,9 +48,9 @@ export default async function AdminAssessmentsPage() {
           </label>
           <select id="learner_id" name="learner_id" required className={adminInput} defaultValue="">
             <option value="">Select learner</option>
-            {(learners ?? []).map((l) => (
+            {learners.map((l) => (
               <option key={l.id} value={l.id}>
-                {l.full_name}
+                {l.option_label}
               </option>
             ))}
           </select>
@@ -97,7 +119,7 @@ export default async function AdminAssessmentsPage() {
         </div>
       </AdminForm>
 
-      {!learners?.length && (
+      {learners.length === 0 && (
         <p className="text-sm text-slate-400">
           Add a learner first — assessments must be attached to one.
         </p>
