@@ -8,6 +8,7 @@ import type {
 } from "@/lib/database.types";
 import { BUSINESS_TIMEZONE, zonedLocalToUtc } from "@/lib/datetime";
 import { requireAdmin } from "@/lib/supabase/admin";
+import { createServiceClient } from "@/lib/supabase/service";
 import type { AdminState } from "./admin-state";
 
 function text(fd: FormData, key: string) {
@@ -171,6 +172,81 @@ export async function setLessonStatus(fd: FormData): Promise<void> {
   await supabase.from("lessons").update({ status }).eq("id", id);
   revalidatePath("/admin/lessons");
   revalidatePath("/account");
+}
+
+// ---------------------------------------------------------------------------
+// Tutor applications — approve / reject
+// ---------------------------------------------------------------------------
+/**
+ * Records a decision on a tutor application.
+ *
+ * Runs through the service-role client because `tutors.status` and
+ * `profiles.role` are deliberately not writable by `authenticated` — admins
+ * included. requireAdmin() is what authorises this; the service key is only
+ * the mechanism.
+ */
+export async function reviewTutorApplication(fd: FormData): Promise<void> {
+  const { user } = await requireAdmin();
+
+  const tutorId = text(fd, "tutor_id");
+  const decision = text(fd, "decision");
+  const notes = text(fd, "review_notes");
+
+  if (!tutorId || !["approved", "rejected", "suspended"].includes(decision)) return;
+
+  const service = createServiceClient();
+  if (!service) {
+    console.error("reviewTutorApplication: SUPABASE_SERVICE_ROLE_KEY is not set");
+    return;
+  }
+
+  const { data: tutor } = await service
+    .from("tutors")
+    .select("profile_id")
+    .eq("id", tutorId)
+    .maybeSingle();
+
+  await service
+    .from("tutors")
+    .update({
+      status: decision as "approved" | "rejected" | "suspended",
+      is_active: decision === "approved",
+    })
+    .eq("id", tutorId);
+
+  // Promote or demote the underlying account. A rejected applicant returns to
+  // being an ordinary parent rather than losing their login.
+  if (tutor?.profile_id) {
+    await service
+      .from("profiles")
+      .update({ role: decision === "approved" ? "tutor" : "parent" })
+      .eq("id", tutor.profile_id);
+  }
+
+  // Close the newest open application on the audit trail.
+  const { data: application } = await service
+    .from("tutor_applications")
+    .select("id")
+    .eq("tutor_id", tutorId)
+    .is("decision", null)
+    .order("submitted_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (application) {
+    await service
+      .from("tutor_applications")
+      .update({
+        decision: decision as "approved" | "rejected" | "suspended",
+        reviewed_by: user.id,
+        reviewed_at: new Date().toISOString(),
+        review_notes: notes || null,
+      })
+      .eq("id", application.id);
+  }
+
+  revalidatePath("/admin/tutor-applications");
+  revalidatePath("/admin");
 }
 
 // ---------------------------------------------------------------------------

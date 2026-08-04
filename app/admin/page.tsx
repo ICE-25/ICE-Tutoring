@@ -7,8 +7,16 @@ export default async function AdminOverviewPage() {
   const { supabase } = await requireAdmin();
 
   // head:true returns only the count, never the rows.
-  const [enrollments, newEnrollments, learners, tutors, lessons, assessments, threads] =
-    await Promise.all([
+  const [
+    enrollments,
+    newEnrollments,
+    learners,
+    tutors,
+    lessons,
+    assessments,
+    threads,
+    pendingTutors,
+  ] = await Promise.all([
       supabase.from("enrollments").select("*", { count: "exact", head: true }),
       supabase
         .from("enrollments")
@@ -19,6 +27,10 @@ export default async function AdminOverviewPage() {
       supabase.from("lessons").select("*", { count: "exact", head: true }),
       supabase.from("assessments").select("*", { count: "exact", head: true }),
       supabase.from("conversations").select("*", { count: "exact", head: true }),
+      supabase
+        .from("tutors")
+        .select("*", { count: "exact", head: true })
+        .eq("status", "submitted"),
     ]);
 
   const tiles: Tile[] = [
@@ -27,6 +39,12 @@ export default async function AdminOverviewPage() {
       count: newEnrollments.count,
       href: "/admin/enrollments",
       hint: "Enrollments nobody has contacted yet",
+    },
+    {
+      label: "Tutor applications",
+      count: pendingTutors.count,
+      href: "/admin/tutor-applications",
+      hint: "Awaiting your review",
     },
     {
       label: "Total enrollments",

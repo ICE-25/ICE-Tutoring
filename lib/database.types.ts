@@ -16,6 +16,12 @@ export type EnrollmentStatus =
 export type LessonFormat = "online" | "physical";
 export type LessonStatus = "scheduled" | "completed" | "cancelled";
 export type SubjectCategory = "stem" | "language" | "humanities" | "other";
+export type TutorStatus =
+  | "draft"
+  | "submitted"
+  | "approved"
+  | "rejected"
+  | "suspended";
 
 /** Reference data shapes used by the enrollment dropdowns. */
 export type Curriculum = {
@@ -166,6 +172,15 @@ export type Database = {
           bio: string | null;
           subjects: string[];
           is_active: boolean;
+          status: TutorStatus;
+          email: string | null;
+          phone: string | null;
+          years_experience: number | null;
+          qualifications: string | null;
+          availability_note: string | null;
+          base_location: string | null;
+          travel_radius_km: number | null;
+          submitted_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -176,15 +191,83 @@ export type Database = {
           headline?: string | null;
           bio?: string | null;
           subjects?: string[];
+          email?: string | null;
+          phone?: string | null;
+          years_experience?: number | null;
+          qualifications?: string | null;
+          availability_note?: string | null;
+          base_location?: string | null;
+          travel_radius_km?: number | null;
+          status?: TutorStatus;
           is_active?: boolean;
+          submitted_at?: string | null;
         };
         Update: {
           full_name?: string;
           headline?: string | null;
           bio?: string | null;
-          subjects?: string[];
+          email?: string | null;
+          phone?: string | null;
+          years_experience?: number | null;
+          qualifications?: string | null;
+          availability_note?: string | null;
+          base_location?: string | null;
+          travel_radius_km?: number | null;
+          status?: TutorStatus;
           is_active?: boolean;
+          submitted_at?: string | null;
         };
+        Relationships: [];
+      };
+      tutor_applications: {
+        Row: {
+          id: string;
+          tutor_id: string;
+          submitted_at: string;
+          decision: TutorStatus | null;
+          reviewed_by: string | null;
+          reviewed_at: string | null;
+          review_notes: string | null;
+          created_at: string;
+        };
+        Insert: { tutor_id: string };
+        Update: {
+          decision?: TutorStatus;
+          reviewed_by?: string | null;
+          reviewed_at?: string;
+          review_notes?: string | null;
+        };
+        Relationships: [];
+      };
+      tutor_subjects: {
+        Row: { tutor_id: string; subject_id: string };
+        Insert: { tutor_id: string; subject_id: string };
+        Update: never;
+        Relationships: [];
+      };
+      tutor_curricula: {
+        Row: { tutor_id: string; curriculum_id: string };
+        Insert: { tutor_id: string; curriculum_id: string };
+        Update: never;
+        Relationships: [];
+      };
+      tutor_class_levels: {
+        Row: { tutor_id: string; class_level_id: string };
+        Insert: { tutor_id: string; class_level_id: string };
+        Update: never;
+        Relationships: [];
+      };
+      tutor_availability: {
+        Row: {
+          id: string;
+          tutor_id: string;
+          weekday: number;
+          start_time: string;
+          end_time: string;
+          created_at: string;
+        };
+        Insert: { tutor_id: string; weekday: number; start_time: string; end_time: string };
+        Update: never;
         Relationships: [];
       };
       lessons: {

@@ -13,6 +13,7 @@ export const dynamic = "force-dynamic";
 const tabs = [
   { href: "/admin", label: "Overview" },
   { href: "/admin/enrollments", label: "Enrollments" },
+  { href: "/admin/tutor-applications", label: "Applications" },
   { href: "/admin/learners", label: "Learners" },
   { href: "/admin/tutors", label: "Tutors" },
   { href: "/admin/lessons", label: "Lessons" },
