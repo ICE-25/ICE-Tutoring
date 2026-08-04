@@ -81,7 +81,8 @@ export function SelectField({
   value,
   onChange,
 }: BaseProps & {
-  options: readonly string[];
+  /** Plain strings submit their own text; objects submit `value` and show `label`. */
+  options: readonly (string | { value: string; label: string })[];
   placeholder: string;
   required?: boolean;
   value?: string;
@@ -114,11 +115,15 @@ export function SelectField({
         <option value="" className="bg-abyss">
           {placeholder}
         </option>
-        {options.map((opt) => (
-          <option key={opt} value={opt} className="bg-abyss">
-            {opt}
-          </option>
-        ))}
+        {options.map((opt) => {
+          const value = typeof opt === "string" ? opt : opt.value;
+          const label = typeof opt === "string" ? opt : opt.label;
+          return (
+            <option key={value} value={value} className="bg-abyss">
+              {label}
+            </option>
+          );
+        })}
       </select>
       <FieldError id={id} message={error} />
     </div>

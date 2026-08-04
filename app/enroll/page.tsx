@@ -6,6 +6,7 @@ import { FeatureCard } from "@/components/ui/FeatureCard";
 import { Reveal } from "@/components/ui/Reveal";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { waLinks } from "@/lib/site";
+import { getReferenceData } from "@/lib/curriculum";
 import { TURNSTILE_SITE_KEY } from "@/lib/turnstile";
 
 export const metadata: Metadata = {
@@ -14,7 +15,12 @@ export const metadata: Metadata = {
     "Fill in the form, or message us on WhatsApp — we'll match a tutor within a day.",
 };
 
-export default function EnrollPage() {
+// Reference data comes from the database, so this can't be fully prerendered.
+export const dynamic = "force-dynamic";
+
+export default async function EnrollPage() {
+  const { curricula, classLevels, subjects } = await getReferenceData();
+
   return (
     <>
       <PageHero
@@ -30,7 +36,12 @@ export default function EnrollPage() {
       <section className="pb-24">
         <div className="container-ice">
           <Reveal y={40}>
-            <EnrollForm turnstileSiteKey={TURNSTILE_SITE_KEY} />
+            <EnrollForm
+              turnstileSiteKey={TURNSTILE_SITE_KEY}
+              curricula={curricula}
+              classLevels={classLevels}
+              subjects={subjects}
+            />
           </Reveal>
         </div>
       </section>

@@ -1,13 +1,8 @@
 import { setEnrollmentStatus } from "../actions";
 import { adminInput } from "@/components/admin/styles";
-import type { EnrollmentStatus, GradeBand } from "@/lib/database.types";
+import { describeClass } from "@/lib/curriculum";
+import type { EnrollmentStatus } from "@/lib/database.types";
 import { requireAdmin } from "@/lib/supabase/admin";
-
-const gradeLabels: Record<GradeBand, string> = {
-  primary: "Primary",
-  middle: "Middle",
-  upper: "Upper",
-};
 
 const statuses: EnrollmentStatus[] = [
   "new",
@@ -20,10 +15,33 @@ const statuses: EnrollmentStatus[] = [
 export default async function AdminEnrollmentsPage() {
   const { supabase } = await requireAdmin();
 
-  const { data: rows } = await supabase
+  const { data: raw } = await supabase
     .from("enrollments")
-    .select("id, parent_name, learner_name, grade_band, subject, phone, status, created_at")
+    .select(
+      "id, parent_name, learner_name, subject, phone, status, created_at, curricula(name), class_levels(label, stage)",
+    )
     .order("created_at", { ascending: false });
+
+  const rows = (
+    (raw ?? []) as unknown as Array<{
+      id: string;
+      parent_name: string;
+      learner_name: string;
+      subject: string | null;
+      phone: string;
+      status: EnrollmentStatus;
+      created_at: string;
+      curricula: { name: string } | { name: string }[] | null;
+      class_levels: { label: string; stage: string } | { label: string; stage: string }[] | null;
+    }>
+  ).map((r) => {
+    const curriculum = Array.isArray(r.curricula) ? r.curricula[0] : r.curricula;
+    const level = Array.isArray(r.class_levels) ? r.class_levels[0] : r.class_levels;
+    return {
+      ...r,
+      class_description: describeClass(curriculum ?? undefined, level ?? undefined),
+    };
+  });
 
   if (!rows?.length) {
     return (
@@ -41,7 +59,7 @@ export default async function AdminEnrollmentsPage() {
             <tr className="border-b border-white/10 font-hud text-[0.65rem] uppercase tracking-[0.16em] text-slate-400">
               <th className="px-6 py-4">Learner</th>
               <th className="px-6 py-4">Parent</th>
-              <th className="px-6 py-4">Grade</th>
+              <th className="px-6 py-4">Curriculum &amp; class</th>
               <th className="px-6 py-4">Subject</th>
               <th className="px-6 py-4">Phone</th>
               <th className="px-6 py-4">Received</th>
@@ -55,9 +73,7 @@ export default async function AdminEnrollmentsPage() {
                   {r.learner_name}
                 </td>
                 <td className="px-6 py-4 text-slate-300">{r.parent_name}</td>
-                <td className="px-6 py-4 text-slate-400">
-                  {gradeLabels[r.grade_band]}
-                </td>
+                <td className="px-6 py-4 text-slate-400">{r.class_description}</td>
                 <td className="px-6 py-4 text-slate-400">{r.subject ?? "—"}</td>
                 <td className="px-6 py-4">
                   <a

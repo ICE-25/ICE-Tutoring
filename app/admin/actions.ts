@@ -3,7 +3,6 @@
 import { revalidatePath } from "next/cache";
 import type {
   EnrollmentStatus,
-  GradeBand,
   LessonFormat,
   LessonStatus,
 } from "@/lib/database.types";
@@ -50,17 +49,30 @@ export async function createLearner(
 
   const parentId = text(fd, "parent_id");
   const fullName = text(fd, "full_name");
-  const gradeBand = text(fd, "grade_band") as GradeBand;
+  const curriculumId = text(fd, "curriculum_id");
+  const classLevelId = text(fd, "class_level_id");
 
   if (!parentId) return fail("Choose the parent this learner belongs to.");
   if (fullName.length < 2) return fail("Enter the learner's full name.");
-  if (!["primary", "middle", "upper"].includes(gradeBand))
-    return fail("Choose a grade band.");
+  if (!curriculumId) return fail("Choose a curriculum.");
+  if (!classLevelId) return fail("Choose a class or year.");
+
+  // The pair comes from the browser, so confirm the class really belongs to
+  // the chosen curriculum before storing it.
+  const { data: level } = await supabase
+    .from("class_levels")
+    .select("id")
+    .eq("id", classLevelId)
+    .eq("curriculum_id", curriculumId)
+    .maybeSingle();
+
+  if (!level) return fail("That class doesn't belong to the selected curriculum.");
 
   const { error } = await supabase.from("learners").insert({
     parent_id: parentId,
     full_name: fullName,
-    grade_band: gradeBand,
+    curriculum_id: curriculumId,
+    class_level_id: classLevelId,
   });
 
   if (error) return fail(error.message);

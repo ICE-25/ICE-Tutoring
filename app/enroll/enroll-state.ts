@@ -6,7 +6,10 @@
  */
 
 export type EnrollFieldErrors = Partial<
-  Record<"parentName" | "learnerName" | "grade" | "phone", string>
+  Record<
+    "parentName" | "learnerName" | "curriculum" | "classLevel" | "subject" | "phone",
+    string
+  >
 >;
 
 export type EnrollState = {

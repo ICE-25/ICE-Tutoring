@@ -1,27 +1,40 @@
 import { createLearner } from "../actions";
 import { AdminForm } from "@/components/admin/AdminForm";
+import { CurriculumClassSelect } from "@/components/forms/CurriculumClassSelect";
 import { adminInput, adminLabel } from "@/components/admin/styles";
-import type { GradeBand } from "@/lib/database.types";
+import { describeClass, getReferenceData } from "@/lib/curriculum";
 import { requireAdmin } from "@/lib/supabase/admin";
-
-const gradeLabels: Record<GradeBand, string> = {
-  primary: "Primary (P.1 – P.7)",
-  middle: "Middle School (S.1 – S.4)",
-  upper: "Upper Secondary (S.5 – S.6)",
-};
 
 export default async function AdminLearnersPage() {
   const { supabase } = await requireAdmin();
+  const { curricula, classLevels } = await getReferenceData();
 
   const [{ data: parents }, { data: learners }] = await Promise.all([
     supabase.from("profiles").select("id, full_name").order("full_name"),
     supabase
       .from("learners")
-      .select("id, full_name, grade_band, parent_id, created_at")
+      .select("id, full_name, parent_id, created_at, curricula(name), class_levels(label, stage)")
       .order("created_at", { ascending: false }),
   ]);
 
   const parentName = new Map((parents ?? []).map((p) => [p.id, p.full_name]));
+
+  const rows = (
+    (learners ?? []) as unknown as Array<{
+      id: string;
+      full_name: string;
+      parent_id: string;
+      curricula: { name: string } | { name: string }[] | null;
+      class_levels: { label: string; stage: string } | { label: string; stage: string }[] | null;
+    }>
+  ).map((l) => {
+    const curriculum = Array.isArray(l.curricula) ? l.curricula[0] : l.curricula;
+    const level = Array.isArray(l.class_levels) ? l.class_levels[0] : l.class_levels;
+    return {
+      ...l,
+      class_description: describeClass(curriculum ?? undefined, level ?? undefined),
+    };
+  });
 
   return (
     <div className="space-y-8">
@@ -45,19 +58,8 @@ export default async function AdminLearnersPage() {
           </label>
           <input id="full_name" name="full_name" required className={adminInput} />
         </div>
-        <div>
-          <label htmlFor="grade_band" className={adminLabel}>
-            Grade band
-          </label>
-          <select id="grade_band" name="grade_band" required className={adminInput} defaultValue="">
-            <option value="">Select grade band</option>
-            {Object.entries(gradeLabels).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </div>
+
+        <CurriculumClassSelect curricula={curricula} classLevels={classLevels} />
       </AdminForm>
 
       {!parents?.length && (
@@ -69,21 +71,20 @@ export default async function AdminLearnersPage() {
 
       <div className="edge-glow glass rounded-hud p-7">
         <h2 className="mb-5 font-display text-lg font-semibold text-white">
-          Learners ({learners?.length ?? 0})
+          Learners ({rows.length})
         </h2>
-        {!learners?.length ? (
+        {rows.length === 0 ? (
           <p className="text-slate-400">None yet.</p>
         ) : (
           <ul className="space-y-3">
-            {learners.map((l) => (
+            {rows.map((l) => (
               <li
                 key={l.id}
                 className="flex flex-wrap items-center justify-between gap-3 border-b border-white/5 pb-3 last:border-0"
               >
                 <span className="font-display font-semibold text-white">{l.full_name}</span>
                 <span className="text-sm text-slate-400">
-                  {gradeLabels[l.grade_band]} · parent:{" "}
-                  {parentName.get(l.parent_id) ?? "unknown"}
+                  {l.class_description} · parent: {parentName.get(l.parent_id) ?? "unknown"}
                 </span>
               </li>
             ))}

@@ -13,7 +13,6 @@ import { Button, LinkButton } from "@/components/ui/Button";
 import { MessageThread, type ThreadMessage } from "./MessageThread";
 import type {
   EnrollmentStatus,
-  GradeBand,
   LessonFormat,
   LessonStatus,
 } from "@/lib/database.types";
@@ -22,7 +21,8 @@ import { cn } from "@/lib/utils";
 export type EnrollmentRow = {
   id: string;
   learner_name: string;
-  grade_band: GradeBand;
+  /** Pre-formatted "Cambridge (CIE) · Year 10" — see describeClass(). */
+  class_description: string;
   subject: string | null;
   status: EnrollmentStatus;
   created_at: string;
@@ -51,12 +51,6 @@ export type AssessmentRow = {
   grade: string | null;
   assessed_on: string;
   comment: string | null;
-};
-
-const gradeLabels: Record<GradeBand, string> = {
-  primary: "Primary (P.1 – P.7)",
-  middle: "Middle School (S.1 – S.4)",
-  upper: "Upper Secondary (S.5 – S.6)",
 };
 
 const statusStyles: Record<EnrollmentStatus, { label: string; className: string }> = {
@@ -299,7 +293,7 @@ export function Dashboard({
                       {e.learner_name}
                     </strong>
                     <p className="mt-1 text-sm text-slate-400">
-                      {gradeLabels[e.grade_band]}
+                      {e.class_description}
                       {e.subject ? ` · ${e.subject}` : ""}
                     </p>
                   </div>

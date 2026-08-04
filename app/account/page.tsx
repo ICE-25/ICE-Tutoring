@@ -9,6 +9,8 @@ import { Reveal } from "@/components/ui/Reveal";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { HexFieldBackdrop } from "@/components/visuals/Backdrops";
 import { createClient } from "@/lib/supabase/server";
+import { describeClass } from "@/lib/curriculum";
+import type { EnrollmentStatus } from "@/lib/database.types";
 
 export const metadata: Metadata = {
   title: "Account",
@@ -59,7 +61,9 @@ export default async function AccountPage() {
       supabase.from("profiles").select("full_name, role").eq("id", user.id).maybeSingle(),
       supabase
         .from("enrollments")
-        .select("id, learner_name, grade_band, subject, status, created_at")
+        .select(
+          "id, learner_name, subject, status, created_at, curricula(name), class_levels(label, stage)",
+        )
         .eq("parent_id", user.id)
         .order("created_at", { ascending: false }),
       supabase.from("learners").select("id, full_name"),
@@ -103,6 +107,31 @@ export default async function AccountPage() {
       (learners ?? []).map((l) => [l.id, l.full_name] as const),
     );
 
+    // PostgREST returns embedded rows as objects (or arrays when ambiguous),
+    // so normalise before formatting.
+    const enrollmentRows = (
+      (enrollments ?? []) as unknown as Array<{
+        id: string;
+        learner_name: string;
+        subject: string | null;
+        status: EnrollmentStatus;
+        created_at: string;
+        curricula: { name: string } | { name: string }[] | null;
+        class_levels: { label: string; stage: string } | { label: string; stage: string }[] | null;
+      }>
+    ).map((e) => {
+      const curriculum = Array.isArray(e.curricula) ? e.curricula[0] : e.curricula;
+      const level = Array.isArray(e.class_levels) ? e.class_levels[0] : e.class_levels;
+      return {
+        id: e.id,
+        learner_name: e.learner_name,
+        subject: e.subject,
+        status: e.status,
+        created_at: e.created_at,
+        class_description: describeClass(curriculum ?? undefined, level ?? undefined),
+      };
+    });
+
     return (
       <>
         <PageHero
@@ -136,7 +165,7 @@ export default async function AccountPage() {
           <Dashboard
             name={profile?.full_name || user.email || ""}
             email={user.email ?? ""}
-            enrollments={enrollments ?? []}
+            enrollments={enrollmentRows}
             learnerNames={learnerNames}
             lessons={lessons ?? []}
             assessments={assessments ?? []}

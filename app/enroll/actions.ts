@@ -8,14 +8,8 @@ import { getClientIpHash, rateLimit } from "@/lib/rate-limit";
 import { isTurnstileLive, verifyTurnstile } from "@/lib/turnstile";
 import type { EnrollFieldErrors, EnrollState } from "./enroll-state";
 
-/** Maps the form's display labels onto the grade_band enum. */
-function toGradeBand(label: string | null): GradeBand | null {
-  if (!label) return null;
-  if (label.startsWith("Primary")) return "primary";
-  if (label.startsWith("Middle")) return "middle";
-  if (label.startsWith("Upper")) return "upper";
-  return null;
-}
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function text(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -28,7 +22,8 @@ export async function submitEnrollment(
 ): Promise<EnrollState> {
   const parentName = text(formData, "parent-name");
   const learnerName = text(formData, "learner-name");
-  const gradeLabel = text(formData, "grade");
+  const curriculumId = text(formData, "curriculum_id");
+  const classLevelId = text(formData, "class_level_id");
   const subject = text(formData, "subject");
   const phone = text(formData, "phone");
 
@@ -37,9 +32,8 @@ export async function submitEnrollment(
 
   if (parentName.length < 2) fieldErrors.parentName = "Please enter the parent or guardian's name.";
   if (learnerName.length < 2) fieldErrors.learnerName = "Please enter the learner's name.";
-
-  const gradeBand = toGradeBand(gradeLabel);
-  if (!gradeBand) fieldErrors.grade = "Please choose a grade level.";
+  if (!UUID_RE.test(curriculumId)) fieldErrors.curriculum = "Please choose a curriculum.";
+  if (!UUID_RE.test(classLevelId)) fieldErrors.classLevel = "Please choose a class or year.";
 
   // Permissive on format — Ugandan numbers are written many ways.
   const digits = phone.replace(/\D/g, "");
@@ -126,11 +120,30 @@ export async function submitEnrollment(
   // rate limit can no longer be skipped by calling PostgREST directly.
   const writer = createServiceClient() ?? supabase;
 
+  // Verify the class actually belongs to the chosen curriculum. The ids come
+  // from the browser, so a mismatched pair must not reach the database even
+  // though both are individually valid uuids.
+  const { data: level } = await writer
+    .from("class_levels")
+    .select("id")
+    .eq("id", classLevelId)
+    .eq("curriculum_id", curriculumId)
+    .maybeSingle();
+
+  if (!level) {
+    return {
+      status: "error",
+      message: "That class doesn't belong to the selected curriculum. Please reselect.",
+      fieldErrors: { classLevel: "Choose a class from this curriculum." },
+    };
+  }
+
   const { error } = await writer.from("enrollments").insert({
     parent_id: user?.id ?? null,
     parent_name: parentName,
     learner_name: learnerName,
-    grade_band: gradeBand!,
+    curriculum_id: curriculumId,
+    class_level_id: classLevelId,
     subject: subject || null,
     phone,
   });

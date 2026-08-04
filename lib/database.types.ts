@@ -15,6 +15,33 @@ export type EnrollmentStatus =
   | "cancelled";
 export type LessonFormat = "online" | "physical";
 export type LessonStatus = "scheduled" | "completed" | "cancelled";
+export type SubjectCategory = "stem" | "language" | "humanities" | "other";
+
+/** Reference data shapes used by the enrollment dropdowns. */
+export type Curriculum = {
+  id: string;
+  code: string;
+  name: string;
+  country: string | null;
+  sort_order: number;
+};
+
+export type ClassLevel = {
+  id: string;
+  curriculum_id: string;
+  code: string;
+  label: string;
+  stage: string;
+  sort_order: number;
+};
+
+export type Subject = {
+  id: string;
+  code: string;
+  name: string;
+  category: SubjectCategory;
+  sort_order: number;
+};
 
 export type Database = {
   public: {
@@ -46,7 +73,9 @@ export type Database = {
           id: string;
           parent_id: string;
           full_name: string;
-          grade_band: GradeBand;
+          grade_band: GradeBand | null;
+          curriculum_id: string | null;
+          class_level_id: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -54,12 +83,44 @@ export type Database = {
           id?: string;
           parent_id: string;
           full_name: string;
-          grade_band: GradeBand;
+          grade_band?: GradeBand | null;
+          curriculum_id: string;
+          class_level_id: string;
         };
         Update: {
           full_name?: string;
-          grade_band?: GradeBand;
+          curriculum_id?: string;
+          class_level_id?: string;
         };
+        Relationships: [];
+      };
+      curricula: {
+        Row: Curriculum & { is_active: boolean; created_at: string; updated_at: string };
+        Insert: { code: string; name: string; country?: string | null; sort_order?: number };
+        Update: { name?: string; is_active?: boolean; sort_order?: number };
+        Relationships: [];
+      };
+      class_levels: {
+        Row: ClassLevel & { is_active: boolean; created_at: string; updated_at: string };
+        Insert: {
+          curriculum_id: string;
+          code: string;
+          label: string;
+          stage: string;
+          sort_order?: number;
+        };
+        Update: { label?: string; stage?: string; is_active?: boolean; sort_order?: number };
+        Relationships: [];
+      };
+      subjects: {
+        Row: Subject & {
+          is_bookable: boolean;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: { code: string; name: string; category: SubjectCategory; sort_order?: number };
+        Update: { name?: string; is_bookable?: boolean; is_active?: boolean };
         Relationships: [];
       };
       enrollments: {
@@ -69,7 +130,9 @@ export type Database = {
           learner_id: string | null;
           parent_name: string;
           learner_name: string;
-          grade_band: GradeBand;
+          grade_band: GradeBand | null;
+          curriculum_id: string | null;
+          class_level_id: string | null;
           subject: string | null;
           phone: string;
           status: EnrollmentStatus;
@@ -82,7 +145,9 @@ export type Database = {
           learner_id?: string | null;
           parent_name: string;
           learner_name: string;
-          grade_band: GradeBand;
+          grade_band?: GradeBand | null;
+          curriculum_id: string;
+          class_level_id: string;
           subject?: string | null;
           phone: string;
           status?: EnrollmentStatus;

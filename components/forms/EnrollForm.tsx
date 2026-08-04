@@ -6,31 +6,20 @@ import { submitEnrollment } from "@/app/enroll/actions";
 import { initialEnrollState } from "@/app/enroll/enroll-state";
 import { Button, LinkButton } from "@/components/ui/Button";
 import { SelectField, TextField } from "./Field";
+import { CurriculumClassSelect } from "./CurriculumClassSelect";
 import { TurnstileWidget } from "./TurnstileWidget";
+import type { ClassLevel, Curriculum, Subject } from "@/lib/database.types";
 import { cn } from "@/lib/utils";
 
-const grades = [
-  "Primary (P.1 – P.7)",
-  "Middle School (S.1 – S.4)",
-  "Upper Secondary (S.5 – S.6)",
-] as const;
-
-const subjects = [
-  "Mathematics",
-  "Science",
-  "English",
-  "French",
-  "Physics",
-  "Chemistry",
-  "Biology",
-  "Coding",
-  "Robotics",
-] as const;
+type ReferenceProps = {
+  curricula: Curriculum[];
+  classLevels: ClassLevel[];
+  subjects: Subject[];
+};
 
 const emptyForm = {
   parentName: "",
   learnerName: "",
-  grade: "",
   subject: "",
   phone: "",
 };
@@ -41,12 +30,16 @@ const emptyForm = {
  * completed submission — a family with three children must not have to reload
  * the page between each one.
  */
-export function EnrollForm({ turnstileSiteKey }: { turnstileSiteKey: string }) {
+export function EnrollForm({
+  turnstileSiteKey,
+  ...reference
+}: { turnstileSiteKey: string } & ReferenceProps) {
   const [formKey, setFormKey] = useState(0);
   return (
     <EnrollFormInner
       key={formKey}
       turnstileSiteKey={turnstileSiteKey}
+      {...reference}
       onEnrollAnother={() => setFormKey((k) => k + 1)}
     />
   );
@@ -54,11 +47,11 @@ export function EnrollForm({ turnstileSiteKey }: { turnstileSiteKey: string }) {
 
 function EnrollFormInner({
   turnstileSiteKey,
+  curricula,
+  classLevels,
+  subjects,
   onEnrollAnother,
-}: {
-  turnstileSiteKey: string;
-  onEnrollAnother: () => void;
-}) {
+}: { turnstileSiteKey: string; onEnrollAnother: () => void } & ReferenceProps) {
   const [state, formAction, isPending] = useActionState(
     submitEnrollment,
     initialEnrollState,
@@ -133,23 +126,20 @@ function EnrollFormInner({
             onChange={set("learnerName")}
             error={state.fieldErrors.learnerName}
           />
-          <SelectField
-            id="grade"
-            label="Grade level"
-            placeholder="Select grade"
-            options={grades}
-            required
-            value={values.grade}
-            onChange={set("grade")}
-            error={state.fieldErrors.grade}
+          <CurriculumClassSelect
+            curricula={curricula}
+            classLevels={classLevels}
+            curriculumError={state.fieldErrors.curriculum}
+            classError={state.fieldErrors.classLevel}
           />
           <SelectField
             id="subject"
             label="Subject of interest"
             placeholder="Select subject"
-            options={subjects}
+            options={subjects.map((s) => s.name)}
             value={values.subject}
             onChange={set("subject")}
+            error={state.fieldErrors.subject}
           />
           <TextField
             id="phone"
